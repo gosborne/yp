@@ -127,6 +127,7 @@ autotools_do_configure() {
 		cd ${S}
 		# Remove any previous copy of the m4 macros
 		rm -rf ${B}/aclocal-copy/
+		ACLOCAL="aclocal --system-acdir=${B}/aclocal-copy/"
 		if [ x"${acpaths}" = xdefault ]; then
 			acpaths=
 			for i in `find ${S} -maxdepth 2 -name \*.m4|grep -v 'aclocal.m4'| \
@@ -145,11 +146,16 @@ autotools_do_configure() {
 		# The aclocal directory could get modified by other processes 
 		# uninstalling data from the sysroot. See Yocto #861 for details.
 		# We avoid this by taking a copy here and then files cannot disappear.
+		mkdir -p ${B}/aclocal-copy/
 		if [ -d ${STAGING_DATADIR}/aclocal ]; then
 			# for scratch build this directory can be empty
 			# so avoid cp's no files to copy error
-			cp-noerror ${STAGING_DATADIR}/aclocal ${B}/aclocal-copy/
-			acpaths="$acpaths -I ${B}/aclocal-copy/"
+			cp-noerror ${STAGING_DATADIR}/aclocal/ ${B}/aclocal-copy/
+		fi
+		if [ -d ${STAGING_DATADIR_NATIVE}/aclocal ]; then
+			# for scratch build this directory can be empty
+			# so avoid cp's no files to copy error
+			cp-noerror ${STAGING_DATADIR_NATIVE}/aclocal/ ${B}/aclocal-copy/
 		fi
 		# autoreconf is too shy to overwrite aclocal.m4 if it doesn't look
 		# like it was auto-generated.  Work around this by blowing it away
@@ -185,7 +191,7 @@ autotools_do_configure() {
 			intltoolize --copy --force --automake
 		fi
 		bbnote Executing autoreconf --verbose --install --force ${EXTRA_AUTORECONF} $acpaths
-		autoreconf -Wcross --verbose --install --force ${EXTRA_AUTORECONF} $acpaths || bbfatal "autoreconf execution failed."
+		ACLOCAL="$ACLOCAL" autoreconf -Wcross --verbose --install --force ${EXTRA_AUTORECONF} $acpaths || bbfatal "autoreconf execution failed."
 		cd $olddir
 	fi
 	if [ -e ${S}/configure ]; then
